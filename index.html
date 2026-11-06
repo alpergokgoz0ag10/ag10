@@ -88,7 +88,9 @@ dialog#pf::backdrop{background:rgba(0,0,0,.5)}
 <button id="leave" disabled>Odadan ayrıl</button>
 </div>
 <dialog id="pf"><div class="av" id="pfav"></div><h2 id="pfn" style="margin:0"></h2><p id="pfs" style="color:var(--mute);margin:4px 0 0"></p><div id="pfc"><label>Ses <input id="pfv" type="range" min="0" max="200" step="5"><output id="pfo"></output></label><button class="btn" id="pfm" type="button">Sustur</button></div><p style="margin:16px 0 0"><button class="btn" id="pfx" type="button">Kapat</button></p></dialog>
-<script>
+<script type="module">
+import { createClient } from "@supabase/supabase-js";
+var sb=createClient("https://nfkukdxecpjmtnjuxdrh.supabase.co","sb_publishable_j4_iQNoQAkUdpHx2INOW3g_Wm-uNe1H");
 var COL=["#7B4FD6","#E0662E","#1F8FBF","#C23B7A","#4C9A2A","#B8860B"];
 var rooms=[
 {id:"muhabbet",name:"Muhabbet",desc:"Her zaman açık, gelen oturur.",people:["Elif","Can"]},
@@ -149,20 +151,21 @@ var pick=t[Math.floor(Math.random()*t.length)];
 if(pick.getAttribute("data-n")===me&&(mode==="ptt"||muted))return;
 if(Math.random()<.75)pick.classList.add("talk");
 },900);
-var users={},reg=false;
-try{users=JSON.parse(localStorage.getItem("mh_users")||"{}")}catch(e){}
-function save(){try{localStorage.setItem("mh_users",JSON.stringify(users))}catch(e){}}
-function hash(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0")}).join("")})}
+var reg=false;
 function setReg(v){reg=v;var t=v?"Kayıt ol":"Giriş yap";$("at").textContent=t;$("go").textContent=t;$("sw").textContent=v?"Zaten hesabın var mı? Giriş yap":"Hesabın yok mu? Kayıt ol";$("p").autocomplete=v?"new-password":"current-password";$("er").textContent=""}
 $("sw").onclick=function(){setReg(!reg)};
 function login(n){me=n;$("wn").textContent=n+" olarak giriş yaptın.";$("auth").classList.add("hidden");all()}
-$("af").onsubmit=function(e){e.preventDefault();var u=$("u").value.trim(),k=u.toLowerCase();
-if(!/^[A-Za-z0-9_]{3,20}$/.test(u)){$("er").textContent="Kullanıcı adı 3-20 karakter olmalı: harf, rakam veya _.";return}
-hash(k+":"+$("p").value).then(function(h){
-if(reg){if(users[k]){$("er").textContent="Bu kullanıcı adı alınmış.";return}users[k]={n:u,h:h};save()}
-else if(!users[k]||users[k].h!==h){$("er").textContent="Kullanıcı adı veya şifre yanlış.";return}
-login(users[k].n)})};
-$("out").onclick=function(){cur=null;me="";held=false;$("p").value="";$("auth").classList.remove("hidden");all()};
+function nm(u){return u.user_metadata&&u.user_metadata.display_name||"Kullanıcı"}
+sb.auth.getSession().then(function(r){if(r.data.session)login(nm(r.data.session.user))});
+$("af").onsubmit=async function(e){e.preventDefault();var u=$("u").value.trim(),em=u.toLowerCase()+"@mahalle.app",p=$("p").value,er=$("er"),gb=$("go");
+if(!/^[A-Za-z0-9_]{3,20}$/.test(u)){er.textContent="Kullanıcı adı 3-20 karakter olmalı: harf, rakam veya _.";return}
+gb.disabled=true;er.textContent="";
+var r=reg?await sb.auth.signUp({email:em,password:p,options:{data:{display_name:u}}}):await sb.auth.signInWithPassword({email:em,password:p});
+gb.disabled=false;
+if(r.error){var m=r.error.message||"";er.textContent=/already registered/i.test(m)?"Bu kullanıcı adı alınmış.":/invalid login/i.test(m)?"Kullanıcı adı veya şifre yanlış.":"Hata: "+m;return}
+if(!r.data.session){er.textContent="Kayıt oldu ama oturum açılmadı. Supabase'de Confirm email kapalı mı?";return}
+login(nm(r.data.user))};
+$("out").onclick=async function(){await sb.auth.signOut();cur=null;me="";held=false;$("p").value="";$("auth").classList.remove("hidden");all()};
 var stream=null,ctx=null,raf=0;
 function stopTest(){cancelAnimationFrame(raf);if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}if(ctx){ctx.close();ctx=null}}
 function renderSet(m){
