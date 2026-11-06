@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mahalle – sesli odalar</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<style>
+:root{--bg:#EFEAF7;--panel:#E2DAF0;--card:#FBF9FF;--ink:#2A1B4D;--mute:#6B5E8A;--live:#00A88F;--btn:#2A1B4D;--btnink:#FBF9FF;--danger:#D6455D;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#171028;--panel:#211838;--card:#2C2147;--ink:#F1ECFB;--mute:#A99BCB;--live:#3FE0C0;--btn:#F1ECFB;--btnink:#171028;--danger:#FF7088}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,sans-serif;display:flex;flex-direction:column}
+.app{flex:1;display:flex;min-height:0}
+aside{width:280px;background:var(--panel);padding:20px 14px;overflow-y:auto;flex-shrink:0}
+h1{font-size:22px;font-weight:800;margin:0 8px 18px}
+.room{display:block;width:100%;text-align:left;background:none;border:0;color:inherit;font:inherit;padding:10px;border-radius:12px;cursor:pointer}
+.room:hover,.room:focus-visible{background:var(--card)}
+.room.on{background:var(--card);outline:2px solid var(--live)}
+.room b{font-weight:600}
+.room small{display:block;color:var(--mute);margin-top:2px}
+.dots{display:flex;gap:4px;margin-top:6px}
+.dot{width:20px;height:20px;border-radius:50%;font-size:11px;display:grid;place-items:center;color:#fff;font-weight:600}
+main{flex:1;padding:28px;display:flex;flex-direction:column;min-width:0}
+main h2{margin:0;font-size:30px;font-weight:800}
+main p{color:var(--mute);margin:4px 0 24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:16px}
+.tile{background:var(--card);border-radius:20px;padding:20px 10px;text-align:center}
+.av{width:72px;height:72px;border-radius:50%;margin:0 auto 10px;display:grid;place-items:center;font-size:28px;font-weight:800;color:#fff;box-shadow:0 0 0 0 var(--live);transition:box-shadow .15s}
+.tile.talk .av{box-shadow:0 0 0 5px var(--live)}
+.tile.muted .name::after{content:" (kapalı)";color:var(--danger);font-weight:400}
+.empty{color:var(--mute);padding:40px 0}
+.bar{display:flex;justify-content:center;gap:12px;padding:14px;background:var(--panel)}
+.bar button{font:inherit;font-weight:600;border:0;border-radius:999px;padding:12px 20px;background:var(--btn);color:var(--btnink);cursor:pointer}
+.bar button.off{background:var(--danger);color:#fff}
+.bar button:focus-visible,.room:focus-visible{outline:3px solid var(--live);outline-offset:2px}
+.bar button:disabled{opacity:.4;cursor:default}
+@media (max-width:700px){.app{flex-direction:column}aside{width:100%;max-height:34%}main{padding:18px}}
+@media (prefers-reduced-motion:reduce){.av{transition:none}}
+.auth{position:fixed;inset:0;background:var(--bg);display:grid;place-items:center;padding:20px;z-index:5}
+.auth .box{background:var(--card);border-radius:24px;padding:28px;width:100%;max-width:360px}
+.auth h2{margin:0;font-size:26px;font-weight:800}
+.auth p{color:var(--mute);margin:4px 0 0}
+.auth label{display:block;margin-top:14px;font-weight:600}
+.auth input{width:100%;margin-top:6px;padding:12px;border-radius:12px;border:2px solid var(--panel);background:var(--bg);color:var(--ink);font:inherit}
+.auth input:focus-visible,.auth button:focus-visible{outline:3px solid var(--live);outline-offset:2px}
+.auth .go{width:100%;margin-top:18px;font:inherit;font-weight:600;border:0;border-radius:999px;padding:12px;background:var(--btn);color:var(--btnink);cursor:pointer}
+.auth .sw{background:none;border:0;color:var(--mute);font:inherit;margin-top:12px;cursor:pointer;text-decoration:underline}
+.auth .err{color:var(--danger);min-height:1.2em;margin:12px 0 0}
+.hidden{display:none!important}
+#who{margin:0 8px 16px;color:var(--mute)}
+#out{background:none;border:0;color:var(--mute);font:inherit;text-decoration:underline;cursor:pointer;padding:0}
+.bar button.hold{background:var(--live);color:#fff}
+.bar button.mode{background:var(--panel);color:var(--ink);outline:2px solid var(--btn)}
+.sidebtn{display:block;width:100%;text-align:left;margin-top:14px;font:inherit;font-weight:600;color:inherit;background:none;border:0;padding:10px;border-radius:12px;cursor:pointer}
+.sidebtn:hover,.sidebtn:focus-visible{background:var(--card)}
+.sidebtn.on{background:var(--card);outline:2px solid var(--live)}
+button.tile{border:0;font:inherit;color:inherit;cursor:pointer;width:100%}
+button.tile:focus-visible,.set input:focus-visible,.set select:focus-visible,#pf button:focus-visible,.set button:focus-visible,.sidebtn:focus-visible{outline:3px solid var(--live);outline-offset:2px}
+.tile small{display:block;color:var(--mute);margin-top:2px}
+.set{max-width:560px}
+.set section{background:var(--card);border-radius:20px;padding:18px 20px;margin-bottom:16px}
+.set h3{margin:0 0 6px;font-size:18px}
+.set label{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0}
+.set select{max-width:60%;font:inherit;padding:8px;border-radius:10px;border:2px solid var(--panel);background:var(--bg);color:var(--ink)}
+.set input[type=range],#pf input[type=range]{flex:1;accent-color:var(--live)}
+.set .hint{color:var(--mute);font-size:14px;margin:4px 0 0}
+.set .btn,#pf .btn{font:inherit;font-weight:600;border:0;border-radius:999px;padding:10px 18px;background:var(--btn);color:var(--btnink);cursor:pointer}
+.meter{position:relative;height:14px;border-radius:7px;background:var(--panel);margin-top:12px;overflow:hidden}
+.meter i{position:absolute;inset:0 auto 0 0;width:0;background:var(--mute)}
+.meter i.hot{background:var(--live)}
+.meter b{position:absolute;top:0;bottom:0;width:3px;background:var(--ink)}
+dialog#pf{border:0;border-radius:24px;padding:24px;background:var(--card);color:var(--ink);width:min(340px,90vw);text-align:center}
+dialog#pf::backdrop{background:rgba(0,0,0,.5)}
+#pf label{display:flex;align-items:center;gap:10px;margin:14px 0}
+</style>
+</head>
+<body>
+<div class="auth" id="auth"><form class="box" id="af"><h2 id="at">Giriş yap</h2><p>Mahalleye hoş geldin.</p><label>Kullanıcı adı<input id="u" autocomplete="username" required maxlength="20"></label><label>Şifre<input id="p" type="password" autocomplete="current-password" required minlength="6"></label><p class="err" id="er" role="alert"></p><button class="go" id="go">Giriş yap</button><button type="button" class="sw" id="sw">Hesabın yok mu? Kayıt ol</button></form></div>
+<div class="app">
+<aside><h1>Mahalle</h1><div id="who"><span id="wn"></span> <button id="out">Çıkış yap</button></div><nav id="rooms" aria-label="Odalar"></nav><button class="sidebtn" id="setbtn">Ayarlar</button></aside>
+<main id="main"></main>
+</div>
+<div class="bar">
+<button id="mode" class="mode">Mod: Sürekli açık</button>
+<button id="mic" disabled>Mikrofonu kapat</button>
+<button id="ear" disabled>Sesi kapat</button>
+<button id="leave" disabled>Odadan ayrıl</button>
+</div>
+<dialog id="pf"><div class="av" id="pfav"></div><h2 id="pfn" style="margin:0"></h2><p id="pfs" style="color:var(--mute);margin:4px 0 0"></p><div id="pfc"><label>Ses <input id="pfv" type="range" min="0" max="200" step="5"><output id="pfo"></output></label><button class="btn" id="pfm" type="button">Sustur</button></div><p style="margin:16px 0 0"><button class="btn" id="pfx" type="button">Kapat</button></p></dialog>
+<script>
+var COL=["#7B4FD6","#E0662E","#1F8FBF","#C23B7A","#4C9A2A","#B8860B"];
+var rooms=[
+{id:"muhabbet",name:"Muhabbet",desc:"Her zaman açık, gelen oturur.",people:["Elif","Can"]},
+{id:"oyun",name:"Oyun odası",desc:"Oyun kuracaksan buraya.",people:["Deniz","Mert","Ayşe"]},
+{id:"calisma",name:"Çalışma masası",desc:"Sessiz çalışma, ara sıra sohbet.",people:[]},
+{id:"gece",name:"Gece kuşları",desc:"Uyuyamayanlar için.",people:["Burak"]}
+];
+var me="",cur=null,muted=false,deaf=false,mode="open",held=false,view="room",pfn="",vol={},cfg={ns:true,ec:true,th:20,out:""};
+try{vol=JSON.parse(localStorage.getItem("mh_vol")||"{}");Object.assign(cfg,JSON.parse(localStorage.getItem("mh_cfg")||"{}"))}catch(e){}
+function keep(){try{localStorage.setItem("mh_vol",JSON.stringify(vol));localStorage.setItem("mh_cfg",JSON.stringify(cfg))}catch(e){}}
+function gv(n){return vol[n]||{v:100,m:false}}
+var $=function(i){return document.getElementById(i)};
+function dot(n,i){return '<span class="dot" style="background:'+COL[i%COL.length]+'">'+n[0]+'</span>'}
+function renderRooms(){
+$("rooms").innerHTML=rooms.map(function(r){
+var n=r.people.length+(cur===r.id?1:0);
+var all=cur===r.id?r.people.concat([me]):r.people;
+return '<button class="room'+(cur===r.id?' on':'')+'" data-id="'+r.id+'"><b>'+r.name+'</b><small>'+(n?n+' kişi odada':'Şu an boş')+'</small><div class="dots">'+all.map(dot).join("")+'</div></button>'}).join("");
+}
+function renderMain(){
+var m=$("main"),r=rooms.filter(function(x){return x.id===cur})[0];
+stopTest();
+if(view==="settings"){renderSet(m);return}
+if(!r){m.innerHTML='<h2>Bir odaya katıl</h2><p>Soldan bir oda seç. Odalar hep açık, arkadaşların istediği zaman gelip gider.</p>';return}
+var all=r.people.concat([me]);
+m.innerHTML='<h2>'+r.name+'</h2><p>'+r.desc+'</p><div class="grid">'+all.map(function(n,i){
+var isMe=n===me;
+var g=gv(n);return '<button class="tile'+(isMe&&muted?' muted':'')+'" data-n="'+n+'"><div class="av" style="background:'+COL[i%COL.length]+'">'+n[0]+'</div><div class="name">'+n+'</div>'+(!isMe&&(g.m||g.v!==100)?'<small>'+(g.m?'Sessize alındı':'Ses %'+g.v)+'</small>':'')+'</button>'}).join("")+'</div>';
+}
+function ctrl(){
+var on=!!cur;$("setbtn").className="sidebtn"+(view==="settings"?" on":"");
+$("mic").disabled=$("ear").disabled=$("leave").disabled=!on;
+$("mode").textContent=mode==="open"?"Mod: Sürekli açık":"Mod: Bas konuş";
+if(mode==="ptt"){$("mic").className=held?"hold":"";$("mic").textContent="Basılı tut ve konuş (Boşluk)"}
+else{$("mic").className=muted?"off":"";$("mic").textContent=muted?"Mikrofonu aç":"Mikrofonu kapat"}
+$("ear").className=deaf?"off":"";$("ear").textContent=deaf?"Sesi aç":"Sesi kapat";
+}
+function all(){renderRooms();renderMain();ctrl()}
+$("rooms").addEventListener("click",function(e){
+var b=e.target.closest(".room");if(!b)return;
+cur=b.getAttribute("data-id");view="room";all();
+});
+$("mic").onclick=function(){if(mode==="open"){muted=!muted;all()}};
+function hold(on){if(mode!=="ptt"||!cur||deaf)return;held=on;$("mic").className=on?"hold":"";var t=document.querySelector('.tile[data-n="'+me+'"]');if(t)t.classList.toggle("talk",on)}
+$("mic").onpointerdown=function(){hold(true)};
+window.addEventListener("pointerup",function(){hold(false)});
+function pttKey(e){return e.code==="Space"&&mode==="ptt"&&cur&&!$("pf").open&&!/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)&&(e.target.tagName!=="BUTTON"||e.target.id==="mic")}
+document.addEventListener("keydown",function(e){if(pttKey(e)){e.preventDefault();if(!e.repeat)hold(true)}});
+document.addEventListener("keyup",function(e){if(e.code==="Space"&&held){e.preventDefault();hold(false)}});
+$("mode").onclick=function(){mode=mode==="open"?"ptt":"open";held=false;all()};
+$("ear").onclick=function(){deaf=!deaf;if(deaf)muted=true;all()};
+$("leave").onclick=function(){cur=null;all()};
+setInterval(function(){
+var t=document.querySelectorAll(".tile");
+t.forEach(function(x){if(!(held&&x.getAttribute("data-n")===me))x.classList.remove("talk")});
+if(!t.length)return;
+var pick=t[Math.floor(Math.random()*t.length)];
+if(pick.getAttribute("data-n")===me&&(mode==="ptt"||muted))return;
+if(Math.random()<.75)pick.classList.add("talk");
+},900);
+var users={},reg=false;
+try{users=JSON.parse(localStorage.getItem("mh_users")||"{}")}catch(e){}
+function save(){try{localStorage.setItem("mh_users",JSON.stringify(users))}catch(e){}}
+function hash(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0")}).join("")})}
+function setReg(v){reg=v;var t=v?"Kayıt ol":"Giriş yap";$("at").textContent=t;$("go").textContent=t;$("sw").textContent=v?"Zaten hesabın var mı? Giriş yap":"Hesabın yok mu? Kayıt ol";$("p").autocomplete=v?"new-password":"current-password";$("er").textContent=""}
+$("sw").onclick=function(){setReg(!reg)};
+function login(n){me=n;$("wn").textContent=n+" olarak giriş yaptın.";$("auth").classList.add("hidden");all()}
+$("af").onsubmit=function(e){e.preventDefault();var u=$("u").value.trim(),k=u.toLowerCase();
+if(!/^[A-Za-z0-9_]{3,20}$/.test(u)){$("er").textContent="Kullanıcı adı 3-20 karakter olmalı: harf, rakam veya _.";return}
+hash(k+":"+$("p").value).then(function(h){
+if(reg){if(users[k]){$("er").textContent="Bu kullanıcı adı alınmış.";return}users[k]={n:u,h:h};save()}
+else if(!users[k]||users[k].h!==h){$("er").textContent="Kullanıcı adı veya şifre yanlış.";return}
+login(users[k].n)})};
+$("out").onclick=function(){cur=null;me="";held=false;$("p").value="";$("auth").classList.remove("hidden");all()};
+var stream=null,ctx=null,raf=0;
+function stopTest(){cancelAnimationFrame(raf);if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}if(ctx){ctx.close();ctx=null}}
+function renderSet(m){
+m.innerHTML='<h2>Ayarlar</h2><p>Tercihlerin bu tarayıcıda saklanır.</p><div class="set">'+
+'<section><h3>Mikrofon</h3>'+
+'<label>Gürültü engelleme<input type="checkbox" id="sns"></label>'+
+'<label>Yankı engelleme<input type="checkbox" id="sec"></label>'+
+'<label>Hassasiyet<input type="range" id="sth" min="0" max="100"><output id="sto"></output></label>'+
+'<p class="hint">Çubuk çizgiyi geçince mikrofon seni konuşuyor sayar. Düşük değer en hafif sesi de yakalar.</p>'+
+'<div class="meter"><i id="mi"></i><b id="mt"></b></div><p class="hint" id="mh"></p>'+
+'<p style="margin:12px 0 0"><button class="btn" id="mtest">Mikrofonu test et</button></p></section>'+
+'<section><h3>Ses çıkışı</h3><label>Cihaz<select id="sout"></select></label><p class="hint" id="sh"></p>'+
+'<p style="margin:8px 0 0"><button class="btn" id="stest">Test sesi çal</button></p></section></div>';
+var sns=$("sns"),sec=$("sec"),sth=$("sth");
+sns.checked=cfg.ns;sec.checked=cfg.ec;sth.value=cfg.th;
+function thUp(){$("sto").textContent=cfg.th;$("mt").style.left=cfg.th+"%"}
+thUp();
+sns.onchange=function(){cfg.ns=sns.checked;keep();restart()};
+sec.onchange=function(){cfg.ec=sec.checked;keep();restart()};
+sth.oninput=function(){cfg.th=+sth.value;keep();thUp()};
+$("mtest").onclick=function(){if(stream){stopTest();$("mtest").textContent="Mikrofonu test et"}else startTest()};
+$("stest").onclick=beep;
+fillOut();
+}
+function restart(){if(stream){stopTest();startTest()}}
+function startTest(){
+navigator.mediaDevices.getUserMedia({audio:{noiseSuppression:cfg.ns,echoCancellation:cfg.ec,autoGainControl:false}}).then(function(s){
+stream=s;ctx=new AudioContext();var an=ctx.createAnalyser();an.fftSize=1024;ctx.createMediaStreamSource(s).connect(an);
+var d=new Uint8Array(an.fftSize);$("mtest").textContent="Testi durdur";$("mh").textContent="";fillOut();
+(function loop(){var el=$("mi");if(!el||!stream){stopTest();return}an.getByteTimeDomainData(d);var mx=0;for(var i=0;i<d.length;i++)mx=Math.max(mx,Math.abs(d[i]-128));
+var lv=Math.min(100,mx/128*250);el.style.width=lv+"%";el.className=lv>=cfg.th?"hot":"";raf=requestAnimationFrame(loop)})();
+}).catch(function(){$("mh").textContent="Mikrofona erişilemedi. Tarayıcıdan mikrofon iznini ver."});
+}
+function fillOut(){var s=$("sout");if(!s)return;
+if(!navigator.mediaDevices||!navigator.mediaDevices.enumerateDevices){s.disabled=true;$("sh").textContent="Bu tarayıcı çıkış cihazı listelemeyi desteklemiyor.";return}
+navigator.mediaDevices.enumerateDevices().then(function(l){
+s=$("sout");if(!s)return;
+var o=l.filter(function(x){return x.kind==="audiooutput"});
+s.innerHTML="";s.add(new Option("Varsayılan",""));
+o.forEach(function(x,i){s.add(new Option(x.label||"Cihaz "+(i+1),x.deviceId))});
+s.value=cfg.out;if(s.value!==cfg.out)s.value="";
+$("sh").textContent=o.some(function(x){return !x.label})?"Cihaz adları görünmüyorsa önce mikrofonu test et, izin verince liste dolar.":"";
+if(!("setSinkId" in HTMLMediaElement.prototype)){s.disabled=true;$("sh").textContent="Bu tarayıcı çıkış cihazı seçmeyi desteklemiyor (Chrome ve Edge destekler)."}
+s.onchange=function(){cfg.out=s.value;keep()};
+})}
+function beep(){var c=new AudioContext(),dst=c.createMediaStreamDestination(),o=c.createOscillator(),g=c.createGain(),a=new Audio();
+o.frequency.value=440;g.gain.value=.15;o.connect(g);g.connect(dst);a.srcObject=dst.stream;
+var go=function(){a.play();o.start();setTimeout(function(){o.stop();c.close()},700)};
+if(cfg.out&&a.setSinkId)a.setSinkId(cfg.out).then(go).catch(go);else go()}
+function openPf(n){pfn=n;var r=rooms.filter(function(x){return x.id===cur})[0];if(!r)return;
+var i=r.people.concat([me]).indexOf(n),isMe=n===me,g=gv(n);
+$("pfav").style.background=COL[i%COL.length];$("pfav").textContent=n[0];$("pfn").textContent=n;
+$("pfs").textContent=isMe?"Bu sensin":r.name+" odasında";
+$("pfc").classList.toggle("hidden",isMe);
+$("pfv").value=g.v;$("pfo").textContent="%"+g.v;$("pfm").textContent=g.m?"Sesini aç":"Sustur";
+$("pf").showModal()}
+$("pfv").oninput=function(){var g=gv(pfn);vol[pfn]={v:+$("pfv").value,m:g.m};$("pfo").textContent="%"+$("pfv").value;keep();renderMain()};
+$("pfm").onclick=function(){var g=gv(pfn);vol[pfn]={v:g.v,m:!g.m};$("pfm").textContent=vol[pfn].m?"Sesini aç":"Sustur";keep();renderMain()};
+$("pfx").onclick=function(){$("pf").close()};
+$("main").addEventListener("click",function(e){var t=e.target.closest(".tile");if(t)openPf(t.getAttribute("data-n"))});
+$("setbtn").onclick=function(){view=view==="settings"?"room":"settings";all()};
+all();
+</script>
+</body>
+</html>
